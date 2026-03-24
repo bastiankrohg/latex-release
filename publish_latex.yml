@@ -1,0 +1,31 @@
+name: Build LaTeX document
+on: 
+  [push]
+
+permissions:
+  contents: write
+
+jobs:
+  build_latex:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v2
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@master
+        with:
+          root_file: main.tex
+          working_directory: .
+      - name: Delete latest release
+        if: success()
+        uses: ame-yu/action-delete-latest-release@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Rename pdf
+        run: mv ./main.pdf ./proposal.pdf
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: "latest"
+          artifacts: "./proposal.pdf"
+          token: ${{ secrets.GITHUB_TOKEN }}
