@@ -1,0 +1,49 @@
+name: Build & Release PDF
+
+on:
+  push:
+    branches:
+      - main          # Change to 'master' if that's your default branch
+
+permissions:
+  contents: write
+
+env:
+  ROOT_FILE: main.tex           # Entry point LaTeX file
+  OUTPUT_PDF: report.pdf        # Name of the PDF in the release
+  RELEASE_TAG: latest           # Git tag used for the rolling release
+
+jobs:
+  build_latex:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile LaTeX document
+        uses: xu-cheng/latex-action@master
+        with:
+          root_file: ${{ env.ROOT_FILE }}
+          working_directory: .
+
+      - name: Rename PDF
+        run: mv ./main.pdf ./${{ env.OUTPUT_PDF }}
+
+      - name: Delete existing release (if any)
+        uses: ame-yu/action-delete-latest-release@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ env.RELEASE_TAG }}
+
+      - name: Publish release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ env.RELEASE_TAG }}
+          name: "Latest Build"
+          body: |
+            Automated PDF build from commit ${{ github.sha }}.
+            Built on ${{ github.event.head_commit.timestamp }}.
+          artifacts: ./${{ env.OUTPUT_PDF }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
